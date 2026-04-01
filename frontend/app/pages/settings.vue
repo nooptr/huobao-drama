@@ -337,7 +337,7 @@
           <div>
             <div class="setup-kicker">Huobao Preset</div>
             <h2 class="modal-title">火宝一键配置</h2>
-            <div class="modal-note">按火宝推荐链路自动创建或更新 4 条配置：文本 / 图片 / 视频 / 音频。</div>
+            <div class="modal-note">按火宝推荐链路自动创建或更新 4 条服务配置，并同时初始化 5 个 Agent 的默认模型。</div>
           </div>
           <span class="tag tag-success">推荐</span>
         </div>
@@ -560,24 +560,11 @@ async function applyHuobaoPreset() {
     return
   }
   try {
-    for (const preset of huobaoPresetCards) {
-      const existing = cfgs.value.find(c => c.service_type === preset.serviceType && c.provider === preset.provider)
-      const payload = {
-        service_type: preset.serviceType,
-        provider: preset.provider,
-        name: `火宝默认${preset.label}服务`,
-        api_key: huobaoForm.apiKey,
-        base_url: preset.baseUrl,
-        model: [preset.model],
-        priority: preset.priority,
-        is_active: true,
-      }
-      if (existing) await aiConfigAPI.update(existing.id, payload)
-      else await aiConfigAPI.create(payload)
-    }
+    await aiConfigAPI.huobaoPreset(huobaoForm.apiKey)
     await loadCfgs()
+    await loadAgents()
     presetDialog.value = false
-    toast.success('火宝推荐配置已写入')
+    toast.success('火宝推荐配置与默认 Agent LLM 已写入')
   } catch (e) {
     toast.error(e.message)
   }
