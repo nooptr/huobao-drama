@@ -8,7 +8,7 @@ export const dramas = mysqlTable('dramas', {
   title: text('title').notNull(),
   description: text('description'),
   genre: text('genre'),
-  style: varchar('style', { length: 64 }).default('realistic'),
+  style: varchar('style', { length: 64 }).default('3d'),
   aspectRatio: varchar('aspect_ratio', { length: 16 }).default('16:9'),
   totalEpisodes: int('total_episodes').default(1),
   totalDuration: int('total_duration').default(0),
@@ -114,14 +114,12 @@ export const storyboards = mysqlTable('storyboards', {
   shotType: text('shot_type'),
   angle: text('angle'),
   movement: text('movement'),
-  action: text('action'),
   result: text('result'),
   atmosphere: text('atmosphere'),
   imagePrompt: text('image_prompt'),
   videoPrompt: text('video_prompt'),
   bgmPrompt: text('bgm_prompt'),
   soundEffect: text('sound_effect'),
-  dialogue: text('dialogue'),
   description: text('description'),
   duration: int('duration').default(0),
   composedImage: text('composed_image'),
@@ -195,22 +193,6 @@ export const stylePresets = mysqlTable('style_presets', {
   createdAt: varchar('created_at', { length: 64 }).notNull(),
   updatedAt: varchar('updated_at', { length: 64 }).notNull(),
   // 注意: 此表无 deleted_at（硬删除），value 列有唯一索引（见 DDL）
-})
-
-export const agentConfigs = mysqlTable('agent_configs', {
-  id: int('id').primaryKey().autoincrement(),
-  agentType: varchar('agent_type', { length: 64 }).notNull(),
-  name: text('name').notNull(),
-  description: text('description'),
-  model: text('model'),
-  systemPrompt: text('system_prompt'),
-  temperature: double('temperature'),
-  maxTokens: int('max_tokens'),
-  maxIterations: int('max_iterations'),
-  isActive: boolean('is_active').default(true),
-  createdAt: varchar('created_at', { length: 64 }).notNull(),
-  updatedAt: varchar('updated_at', { length: 64 }).notNull(),
-  deletedAt: varchar('deleted_at', { length: 64 }),
 })
 
 // 统一生成任务表：图片/视频生成共用，type 区分，生成参数存 params(JSON)

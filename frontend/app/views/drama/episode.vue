@@ -14,7 +14,7 @@
           <div class="studio-meta-row">
             <span class="studio-meta-pill">{{ currentSubStageLabel }}</span>
             <span class="studio-meta-pill is-progress">{{ pipelineProgress }}/{{ pipelineTotal }}</span>
-            <span class="studio-meta-inline">{{ chars.length }} 角色 · {{ sbs.length }} 镜头</span>
+            <span class="studio-meta-inline">{{ chars.length }} 角色 · {{ sbs.length }} 段落</span>
           </div>
         </div>
       </div>
@@ -286,8 +286,10 @@
                   <div class="character-asset-overview"><div class="character-portrait">
                       <img
                         v-if="c.image_url || c.imageUrl"
-                        :src="assetImageSrc(c)"
+                        :src="thumbOf(assetImageSrc(c))"
                         class="previewable-image"
+                        loading="lazy"
+                        @error="thumbFallback($event, assetImageSrc(c))"
                         @click.stop="openImageViewer(assetImageSrc(c), `${c.name} 角色形象`)"
                       />
                       <div v-else class="character-portrait-empty">
@@ -312,6 +314,11 @@
                       <button class="btn btn-sm character-gen-btn" :disabled="isPendingCharImage(c.id)" @click.stop="genCharImg(c.id)">
                         <Loader2 v-if="isPendingCharImage(c.id)" :size="11" class="animate-spin" />
                         {{ (c.image_url || c.imageUrl) ? '重绘' : (isPendingCharImage(c.id) ? '生成中' : '生成') }}
+                      </button>
+                      <button class="btn btn-sm" title="上传角色形象图" :disabled="isUploadingAsset('character', c.id)" @click.stop="uploadAssetImage('character', c.id)">
+                        <Loader2 v-if="isUploadingAsset('character', c.id)" :size="11" class="animate-spin" />
+                        <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        上传
                       </button>
                     </div>
                   </div>
@@ -344,8 +351,10 @@
                 <div class="asset-cover wide">
                   <img
                     v-if="s.image_url || s.imageUrl"
-                    :src="assetImageSrc(s)"
+                    :src="thumbOf(assetImageSrc(s))"
                     class="previewable-image"
+                    loading="lazy"
+                    @error="thumbFallback($event, assetImageSrc(s))"
                     @click.stop="openImageViewer(assetImageSrc(s), `${s.location} 场景图`)"
                   />
                   <div v-else class="asset-cover-empty">
@@ -364,7 +373,12 @@
                 </div>
                 <div class="asset-foot">
                   <span :class="['dot', (s.image_url || s.imageUrl) && 'ok', isPendingSceneImage(s.id) && 'pending']" />
-                  <button class="btn btn-sm ml-auto" :disabled="isPendingSceneImage(s.id)" @click.stop="genSceneImg(s.id)">
+                  <button class="btn btn-sm ml-auto" title="上传场景图" :disabled="isUploadingAsset('scene', s.id)" @click.stop="uploadAssetImage('scene', s.id)">
+                    <Loader2 v-if="isUploadingAsset('scene', s.id)" :size="11" class="animate-spin" />
+                    <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    上传
+                  </button>
+                  <button class="btn btn-sm" :disabled="isPendingSceneImage(s.id)" @click.stop="genSceneImg(s.id)">
                     <Loader2 v-if="isPendingSceneImage(s.id)" :size="11" class="animate-spin" />
                     {{ (s.image_url || s.imageUrl) ? '重绘' : (isPendingSceneImage(s.id) ? '生成中' : '生成') }}
                   </button>
@@ -392,8 +406,10 @@
                 <div class="asset-cover wide">
                   <img
                     v-if="p.image_url || p.imageUrl"
-                    :src="assetImageSrc(p)"
+                    :src="thumbOf(assetImageSrc(p))"
                     class="previewable-image"
+                    loading="lazy"
+                    @error="thumbFallback($event, assetImageSrc(p))"
                     @click.stop="openImageViewer(assetImageSrc(p), `${p.name} 道具图`)"
                   />
                   <div v-else class="asset-cover-empty">
@@ -414,7 +430,12 @@
                 </div>
                 <div class="asset-foot">
                   <span :class="['dot', (p.image_url || p.imageUrl) && 'ok', isPendingPropImage(p.id) && 'pending']" />
-                  <button class="btn btn-sm ml-auto" :disabled="isPendingPropImage(p.id)" @click.stop="genPropImg(p.id)">
+                  <button class="btn btn-sm ml-auto" title="上传道具图" :disabled="isUploadingAsset('prop', p.id)" @click.stop="uploadAssetImage('prop', p.id)">
+                    <Loader2 v-if="isUploadingAsset('prop', p.id)" :size="11" class="animate-spin" />
+                    <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    上传
+                  </button>
+                  <button class="btn btn-sm" :disabled="isPendingPropImage(p.id)" @click.stop="genPropImg(p.id)">
                     <Loader2 v-if="isPendingPropImage(p.id)" :size="11" class="animate-spin" />
                     {{ (p.image_url || p.imageUrl) ? '重绘' : (isPendingPropImage(p.id) ? '生成中' : '生成') }}
                   </button>
@@ -429,7 +450,7 @@
           <div v-if="prodTab === 'storyboard'" class="prod-content">
             <div class="prod-section-bar">
               <span class="dim" style="font-size:12px">分镜拆分</span>
-              <span class="tag mono">{{ sbs.length }} 镜头 · {{ totalDuration }}s</span>
+              <span class="tag mono">{{ sbs.length }} 段落 · {{ totalDuration }}s</span>
               <span class="tag">{{ lockedVideoConfigLabel }}</span>
               <div class="ml-auto flex gap-1">
                 <button class="btn btn-sm" :disabled="rn" @click="doBreakdown">
@@ -496,7 +517,7 @@
                             class="shot-avatar"
                             :title="c.name"
                           >
-                            <img v-if="assetImageSrc(c)" :src="assetImageSrc(c)" :alt="c.name" />
+                            <img v-if="assetImageSrc(c)" :src="thumbOf(assetImageSrc(c))" :alt="c.name" loading="lazy" @error="thumbFallback($event, assetImageSrc(c))" />
                             <template v-else>{{ (c.name || '?').slice(0, 1) }}</template>
                           </span>
                           <span v-if="getStoryboardCharacters(sb).length > 3" class="shot-avatar shot-avatar-more">+{{ getStoryboardCharacters(sb).length - 3 }}</span>
@@ -504,7 +525,6 @@
                         <span v-else class="shot-avatars-empty">0 角色</span>
                       </div>
                       <div class="shot-flags">
-                        <span class="shot-flag flag-dialogue" :class="{ on: !!sb.dialogue }" :title="sb.dialogue ? '有对白' : '无对白'"><i class="dot"></i>白</span>
                         <span class="shot-flag flag-video" :class="{ on: hasVid(sb) }" :title="hasVid(sb) ? '已生成视频' : '未生成视频'"><i class="dot"></i>视</span>
                       </div>
                     </div>
@@ -563,27 +583,13 @@
                         <span class="detail-section-title">分镜描述</span>
                       </div>
                       <label class="field">
-                        <span class="field-label">画面描述</span>
-                        <textarea :value="selectedSb.description || ''" class="textarea" rows="4" @blur="updateField(selectedSb, 'description', $event.target.value)" placeholder="分镜画面描述" />
+                        <span class="field-label">画面描述 <span class="dim">(按【镜头1】【镜头2】…逐子镜头描述；台词写「角色名说：「台词」」，旁白写「旁白：内容」)</span></span>
+                        <textarea :value="selectedSb.description || ''" class="textarea" rows="8" @blur="updateField(selectedSb, 'description', $event.target.value)" placeholder="分镜画面描述" />
                       </label>
-                      <div class="field-grid field-grid-2">
-                        <label class="field">
-                          <span class="field-label">动作</span>
-                          <textarea :value="selectedSb.action || ''" class="textarea" rows="3" @blur="updateField(selectedSb, 'action', $event.target.value)" placeholder="角色动作与表演" />
-                        </label>
-                        <label class="field">
-                          <span class="field-label">氛围</span>
-                          <textarea :value="selectedSb.atmosphere || ''" class="textarea" rows="3" @blur="updateField(selectedSb, 'atmosphere', $event.target.value)" placeholder="光线、色调、空气感、环境氛围" />
-                        </label>
-                      </div>
-                      <label v-if="dialogueOpen || selectedSb.dialogue" class="field">
-                        <span class="field-label">对白 / 旁白</span>
-                        <textarea :value="selectedSb.dialogue || ''" class="textarea" rows="2" @blur="updateField(selectedSb, 'dialogue', $event.target.value)" placeholder="角色名：台词内容 或 旁白：内容" />
+                      <label class="field">
+                        <span class="field-label">氛围</span>
+                        <textarea :value="selectedSb.atmosphere || ''" class="textarea" rows="3" @blur="updateField(selectedSb, 'atmosphere', $event.target.value)" placeholder="光线、色调、空气感、环境氛围" />
                       </label>
-                      <button v-else type="button" class="dialogue-add" @click="dialogueOpen = true">
-                        <MessageSquarePlus :size="12" />
-                        添加对白 / 旁白
-                      </button>
                     </div>
 
                     <div class="detail-section">
@@ -592,20 +598,20 @@
                         <button
                           type="button"
                           class="btn btn-sm"
-                          :disabled="rn || videoPromptBatch.running"
+                          :disabled="videoPromptGeneratingIds.includes(selectedSb?.id) || videoPromptBatch.running"
                           @click="genVideoPrompt(selectedSb)"
                         >
-                          <Loader2 v-if="rn && rt === 'prompt_generator'" :size="11" class="animate-spin" />
+                          <Loader2 v-if="videoPromptGeneratingIds.includes(selectedSb?.id)" :size="11" class="animate-spin" />
                           {{ (selectedSb.video_prompt || selectedSb.videoPrompt) ? '重新生成' : 'AI 生成' }}
                         </button>
                       </div>
-                      <div class="detail-section-copy">根据当前分镜的画面描述、动作、氛围以及对白 / 旁白生成</div>
+                      <div class="detail-section-copy">根据当前分镜的画面描述（含台词/旁白）与氛围生成</div>
                       <MentionTextarea
                         :model-value="selectedSb.video_prompt || selectedSb.videoPrompt || ''"
                         :options="mentionOptions"
                         :rows="12"
                         input-class="textarea"
-                        placeholder="用 @角色名 / @场景名 / @道具名 引用参考素材（如 @志远、@电子厂车间、@扳手），按 3 秒一段换行描述画面运动与镜头；也可点 AI 生成由提示词 Agent 自动创作…"
+                        placeholder="用 @角色名 / @场景名 / @道具名 引用参考素材，按 3 秒一段换行描述画面运动与镜头；也可点 AI 生成由提示词 Agent 自动创作…"
                         @commit="v => updateField(selectedSb, 'video_prompt', v)"
                       />
                     </div>
@@ -638,7 +644,7 @@
                           :disabled="!asset.ready"
                           @click.stop="asset.ready && openImageViewer(assetImageSrc({ imageUrl: asset.imageUrl }), `${asset.name} ${asset.type}`)"
                         >
-                          <img v-if="asset.ready" :src="assetImageSrc({ imageUrl: asset.imageUrl })" class="previewable-image" />
+                          <img v-if="asset.ready" :src="thumbOf(assetImageSrc({ imageUrl: asset.imageUrl }))" class="previewable-image" loading="lazy" @error="thumbFallback($event, assetImageSrc({ imageUrl: asset.imageUrl }))" />
                           <span v-else>{{ asset.type === '场景' ? '景' : asset.type === '道具' ? '具' : '角' }}</span>
                         </button>
                         <div class="storyboard-ref-main">
@@ -738,7 +744,8 @@
                     <video
                       v-if="hasVid(task.storyboard)"
                       :src="'/' + getVideoUrl(task.storyboard)"
-                      preload="metadata"
+                      :poster="posterOf('/' + getVideoUrl(task.storyboard)) || undefined"
+                      preload="none"
                       playsinline
                       muted
                       tabindex="-1"
@@ -810,6 +817,7 @@
                     v-if="previewVideoUrl || hasVid(selectedSb)"
                     :key="previewVideoUrl || getVideoUrl(selectedSb)"
                     :src="'/' + (previewVideoUrl || getVideoUrl(selectedSb))"
+                    :poster="posterOf('/' + (previewVideoUrl || getVideoUrl(selectedSb))) || undefined"
                     controls
                     preload="metadata"
                     playsinline
@@ -846,7 +854,7 @@
                     @click="previewHistoryVideo(t)"
                     @keydown.enter.prevent="previewHistoryVideo(t)"
                   >
-                    <video :src="'/' + taskVideoPath(t)" preload="metadata" muted playsinline tabindex="-1" />
+                    <video :src="'/' + taskVideoPath(t)" :poster="posterOf('/' + taskVideoPath(t)) || undefined" preload="none" muted playsinline tabindex="-1" />
                     <span class="video-history-time">{{ formatHistoryTime(taskCreatedAt(t)) }}</span>
                     <span v-if="isCurrentVideo(t)" class="video-history-badge">当前</span>
                     <button v-else type="button" class="video-history-del" title="删除该记录" @click.stop="removeHistoryVideo(t)">×</button>
@@ -862,10 +870,10 @@
                       <button
                         type="button"
                         class="btn btn-sm"
-                        :disabled="rn || videoPromptBatch.running"
+                        :disabled="videoPromptGeneratingIds.includes(selectedSb?.id) || videoPromptBatch.running"
                         @click="genVideoPrompt(selectedSb)"
                       >
-                        <Loader2 v-if="rn && rt === 'prompt_generator'" :size="11" class="animate-spin" />
+                        <Loader2 v-if="videoPromptGeneratingIds.includes(selectedSb?.id)" :size="11" class="animate-spin" />
                         {{ (selectedSb.video_prompt || selectedSb.videoPrompt) ? '重新生成' : 'AI 生成' }}
                       </button>
                     </div>
@@ -874,7 +882,7 @@
                       :options="mentionOptions"
                       :rows="9"
                       input-class="textarea video-inspector-prompt"
-                      placeholder="用 @角色名 / @场景名 / @道具名 引用参考素材（如 @志远、@电子厂车间、@扳手），生成时自动映射为参考图片；再按时间段描述画面运动与镜头…"
+                      placeholder="用 @角色名 / @场景名 / @道具名 引用参考素材，生成时自动映射为参考图片；再按时间段描述画面运动与镜头…"
                       @commit="v => updateField(selectedSb, 'video_prompt', v)"
                     />
                   </section>
@@ -890,7 +898,7 @@
                         :disabled="!asset.ready"
                         @click="asset.ready && openImageViewer(assetImageSrc({ imageUrl: asset.imageUrl }), `${asset.name} ${asset.type}`)"
                       >
-                        <img v-if="asset.ready" :src="assetImageSrc({ imageUrl: asset.imageUrl })" :alt="asset.name" />
+                        <img v-if="asset.ready" :src="thumbOf(assetImageSrc({ imageUrl: asset.imageUrl }))" :alt="asset.name" loading="lazy" @error="thumbFallback($event, assetImageSrc({ imageUrl: asset.imageUrl }))" />
                         <span v-else>{{ asset.type }}</span>
                         <small>{{ asset.name }}</small>
                       </button>
@@ -995,7 +1003,8 @@
                     <video
                       v-if="m.status === 'completed' && m.merged_url"
                       :src="'/' + m.merged_url"
-                      preload="metadata"
+                      :poster="posterOf('/' + m.merged_url) || undefined"
+                      preload="none"
                       muted
                       playsinline
                       tabindex="-1"
@@ -1059,7 +1068,8 @@
                     <video
                       v-if="hasVid(sb)"
                       :src="'/' + getVideoUrl(sb)"
-                      preload="metadata"
+                      :poster="posterOf('/' + getVideoUrl(sb)) || undefined"
+                      preload="none"
                       muted
                       playsinline
                       tabindex="-1"
@@ -1122,15 +1132,17 @@
                 <video
                   v-if="row.previewUrl && (row.kind === 'video' || row.kind === 'merge')"
                   :src="genTaskPreviewSrc(row.previewUrl)"
+                  :poster="posterOf(genTaskPreviewSrc(row.previewUrl)) || undefined"
                   controls
-                  preload="metadata"
+                  preload="none"
                   playsinline
                 />
                 <img
                   v-else-if="row.previewUrl"
-                  :src="genTaskPreviewSrc(row.previewUrl)"
+                  :src="thumbOf(genTaskPreviewSrc(row.previewUrl))"
                   :alt="row.targetLabel"
                   loading="lazy"
+                  @error="thumbFallback($event, genTaskPreviewSrc(row.previewUrl))"
                   @click="openImageViewer(genTaskPreviewSrc(row.previewUrl), row.targetLabel)"
                 />
                 <div v-else class="video-task-empty">
@@ -1261,8 +1273,9 @@
                 >
                   <img
                     v-if="assetImageSrc(assetDetail.item)"
-                    :src="assetImageSrc(assetDetail.item)"
+                    :src="thumbOf(assetImageSrc(assetDetail.item))"
                     class="previewable-image"
+                    @error="thumbFallback($event, assetImageSrc(assetDetail.item))"
                   />
                   <span v-else class="asset-detail-media-empty">
                     <svg v-if="assetDetail.type === 'character'" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1396,6 +1409,15 @@
             </div>
             <div class="asset-detail-primary-actions">
               <button
+                class="btn"
+                :disabled="isUploadingAsset(assetDetail.type, assetDetail.item.id)"
+                @click="uploadAssetImage(assetDetail.type, assetDetail.item.id)"
+              >
+                <Loader2 v-if="isUploadingAsset(assetDetail.type, assetDetail.item.id)" :size="11" class="animate-spin" />
+                <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                上传图片
+              </button>
+              <button
                 v-if="assetDetail.type === 'character'"
                 class="btn"
                 :disabled="isPendingCharImage(assetDetail.item.id)"
@@ -1522,9 +1544,9 @@
 import { toast } from 'vue-sonner'
 import {
   Users, Video, FileText, FolderKanban, Clapperboard, Download, Loader2,
-  MapPin, Play, MessageSquarePlus, Plus, X, ListTodo,
+  MapPin, Play, Plus, X, ListTodo,
 } from 'lucide-vue-next'
-import { dramaAPI, episodeAPI, storyboardAPI, characterAPI, sceneAPI, propAPI, taskAPI, mergeAPI, aiConfigAPI, uploadAPI } from '~/composables/useApi'
+import { api, dramaAPI, episodeAPI, storyboardAPI, characterAPI, sceneAPI, propAPI, taskAPI, mergeAPI, aiConfigAPI, uploadAPI } from '~/composables/useApi'
 import { useAgent } from '~/composables/useAgent'
 
 definePageMeta({ layout: 'studio' })
@@ -1534,7 +1556,14 @@ const dramaId = Number(route.params.id)
 const episodeNumber = Number(route.params.episodeNumber)
 
 const drama = ref(null), episode = ref(null), chars = ref([]), scenes = ref([]), propItems = ref([]), sbs = ref([]), mergeData = ref(null)
-const panel = ref('script')
+// 工作台面板位置记忆（按剧集隔离）：刷新后回到上次所在步骤，而不是总是退回「改写」
+const PANEL_STORE_KEY = `huobao:workbench:panel:${dramaId}:${episodeNumber}`
+const storedPanel = (() => {
+  try { return JSON.parse(localStorage.getItem(PANEL_STORE_KEY) || 'null') } catch { return null }
+})()
+// 首个 refresh 时若已恢复面板位置，跳过按内容自动重置 scriptStep
+let panelRestored = !!storedPanel
+const panel = ref(['production', 'export'].includes(storedPanel?.panel) ? storedPanel.panel : 'script')
 const { running: rn, runningType: rt, run: runAgent } = useAgent()
 
 const localRaw = ref(''), localScript = ref('')
@@ -1579,8 +1608,12 @@ async function loadExportMerges() {
   try { exportMerges.value = await mergeAPI.list(epId.value) || [] } catch { /* 静默 */ }
 }
 
-const scriptStep = ref(0)
-const prodTab = ref('assets')
+const scriptStep = ref(storedPanel ? (storedPanel.scriptStep === 0 ? 0 : 1) : 0)
+const prodTab = ref(['assets', 'storyboard', 'videos'].includes(storedPanel?.prodTab) ? storedPanel.prodTab : 'assets')
+// 面板位置变化即持久化
+watch([panel, scriptStep, prodTab], ([p, s, t]) => {
+  try { localStorage.setItem(PANEL_STORE_KEY, JSON.stringify({ panel: p, scriptStep: s, prodTab: t })) } catch { /* 静默 */ }
+})
 const activeExtractTab = ref('characters')
 const prodTabIdx = computed({
   get: () => prodTabDefs.value.findIndex(t => t.id === prodTab.value),
@@ -2483,7 +2516,6 @@ const sceneOptions = computed(() => [
   ...scenes.value.map(s => ({ label: `${s.location} · ${s.time || '未设时间'}`, value: s.id })),
 ])
 
-const dialogueOpen = ref(false)
 
 function sceneShotCount(sceneId) {
   return sbs.value.filter(sb => String(sb?.scene_id || sb?.sceneId || '') === String(sceneId)).length
@@ -2513,7 +2545,10 @@ async function refresh() {
       const epHasContent = !!(episode.value?.content)
       const epHasScript = !!(episode.value?.script_content || episode.value?.scriptContent)
 
-      if (epHasScript || epHasContent) scriptStep.value = 1
+      if (panelRestored) {
+        // 已恢复到上次所在步骤，跳过自动重置（仅首次加载生效）
+        panelRestored = false
+      } else if (epHasScript || epHasContent) scriptStep.value = 1
       else scriptStep.value = 0
     }
   } catch (e) {
@@ -2607,6 +2642,8 @@ async function syncExtractStatus() {
 
 // ─── 批量视频提示词：后端异步逐分镜生成，前端轮询进度 ──────────
 const videoPromptBatch = ref({ running: false, total: 0, completed: 0 })
+// 单个视频提示词生成：按分镜 ID 跟踪，允许不同分镜并行生成（不走全局 rn 锁）
+const videoPromptGeneratingIds = ref([])
 // 分镜勾选：勾选后批量生成只处理所选（已有提示词也会重新生成）；未勾选时处理全部缺失
 const selectedSbIds = ref([])
 // 多选模式：进入后点击卡片=勾选/取消，底部操作条确认生成
@@ -2705,18 +2742,33 @@ function doBreakdown() {
 }
 
 // 按需为单个分镜生成视频提示词：由 prompt_generator 读取分镜字段生成并保存到 video_prompt
-function genVideoPrompt(sb) {
-  if (!sb) return
+async function genVideoPrompt(sb) {
+  if (!sb || videoPromptGeneratingIds.value.includes(sb.id)) return
   const idx = sbs.value.indexOf(sb) + 1
   const cfg = videoConfigs.value.find(c => c.id === lockedVideoConfigId.value)
   const label = cfg ? `${cfg.name} (${cfg.provider})` : '默认'
   const charNames = getStoryboardCharacters(sb).map(c => c.name).join('、') || '无'
   const propNames = getStoryboardProps(sb).map(p => p.name).join('、') || '无'
-  runAgent('prompt_generator', `请为分镜 #${idx}(ID:${sb.id})生成视频提示词(video_prompt)。视频模型:${label},请根据该模型的特性和时长限制生成。
+  videoPromptGeneratingIds.value.push(sb.id)
+  try {
+    await api.post(`/agent/prompt_generator/chat`, {
+      message: `请为分镜 #${idx}(ID:${sb.id})生成视频提示词(video_prompt)。视频模型:${label},请根据该模型的特性和时长限制生成。
 
 该分镜信息:时长 ${sb.duration || 10}s;场景:${getSceneName(sb) || '未绑定'};角色:${charNames};道具:${propNames}。
 
-请先调用 read_storyboard_context 获取该分镜的画面描述、动作、氛围、对白/旁白,据此生成 video_prompt(按 3 秒分段换行、用 @角色名/@场景名/@道具名 引用参考素材),然后调用 update_storyboard 保存到分镜 ID:${sb.id}。只更新 video_prompt 字段,不要改动其他字段,不要重新拆分整集。`, dramaId, epId.value, refresh, chatModelOverride(), chatConfigId())
+请先调用 read_storyboard_context 获取该分镜的画面描述(含【镜头N】子镜头与台词/旁白)、氛围及时长,据此生成 video_prompt(按 3 秒分段换行、用 @角色名/@场景名/@道具名 引用参考素材；段落内允许多镜头切镜,但不跨场景,切镜点对齐 description 的【镜头N】结构),然后调用 update_storyboard 保存到分镜 ID:${sb.id}。只更新 video_prompt 字段,不要改动其他字段,不要重新拆分整集。`,
+      drama_id: dramaId,
+      episode_id: epId.value,
+      model: chatModelOverride() || undefined,
+      config_id: chatConfigId() || undefined,
+    })
+    toast.success(`分镜 #${idx} 视频提示词已生成`)
+    await refresh()
+  } catch (e) {
+    toast.error(e.message)
+  } finally {
+    videoPromptGeneratingIds.value = videoPromptGeneratingIds.value.filter(id => id !== sb.id)
+  }
 }
 
 function sleep(ms) {
@@ -3059,19 +3111,19 @@ const mentionOptions = computed(() => {
       label: c.name,
       value: c.name,
       group: '角色',
-      image: assetImageSrc(c),
+      image: thumbOf(assetImageSrc(c)),
     })),
     ...(scene ? [{
       label: `${scene.location} · ${scene.time || '未设时间'}`,
       value: scene.location,
       group: '场景',
-      image: assetImageSrc(scene),
+      image: thumbOf(assetImageSrc(scene)),
     }] : []),
     ...getStoryboardProps(sb).map(p => ({
       label: p.name,
       value: p.name,
       group: '道具',
-      image: assetImageSrc(p),
+      image: thumbOf(assetImageSrc(p)),
     })),
   ]
 })
@@ -3120,7 +3172,6 @@ watch(selectedSb, (sb) => {
   videoRefAudioUrls.value = []
   videoRefImageUrls.value = []
   videoDuration.value = Number(sb?.duration || 10)
-  dialogueOpen.value = false
 })
 
 function pickFile(accept, cb) {
@@ -3129,6 +3180,31 @@ function pickFile(accept, cb) {
   input.accept = accept
   input.onchange = () => { const f = input.files?.[0]; if (f) cb(f) }
   input.click()
+}
+
+// ===== 资产图片手动上传（角色形象 / 场景图 / 道具图）=====
+const ASSET_UPLOAD_LABELS = { character: '角色形象', scene: '场景图', prop: '道具图' }
+const uploadingAssetKeys = ref([])
+function isUploadingAsset(kind, id) { return uploadingAssetKeys.value.includes(`${kind}:${id}`) }
+function uploadAssetImage(kind, id) {
+  pickFile('image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp', async (file) => {
+    const key = `${kind}:${id}`
+    if (!uploadingAssetKeys.value.includes(key)) uploadingAssetKeys.value.push(key)
+    try {
+      const res = await uploadAPI.image(file)
+      // 与生图回写保持一致：存相对路径（static/...），前端展示时补前导斜杠
+      const payload = { image_url: res.path, local_path: res.path }
+      if (kind === 'character') await characterAPI.update(id, payload)
+      else if (kind === 'scene') await sceneAPI.update(id, payload)
+      else await propAPI.update(id, payload)
+      toast.success(`${ASSET_UPLOAD_LABELS[kind]}已上传`)
+      await refresh()
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      uploadingAssetKeys.value = uploadingAssetKeys.value.filter(k => k !== key)
+    }
+  })
 }
 
 function uploadRefMedia(kind) {
@@ -4101,27 +4177,6 @@ onMounted(async () => { await refresh(); loadConfigs(); syncExtractStatus() })
 }
 .storyboard-ref-thumb:disabled { cursor: default; }
 .storyboard-ref-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-/* 对白折叠入口 */
-.dialogue-add {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px dashed var(--surface-outline);
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text-3);
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 0.16s var(--ease-out), border-color 0.16s var(--ease-out), background 0.16s var(--ease-out);
-}
-.dialogue-add:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-bg);
-}
 .storyboard-ref-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .storyboard-ref-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .storyboard-ref-name {
@@ -4241,14 +4296,7 @@ onMounted(async () => { await refresh(); loadConfigs(); syncExtractStatus() })
 }
 .shot-flag .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--bg-3); flex-shrink: 0; }
 .shot-flag.on { color: var(--text-2); }
-.shot-flag.flag-dialogue.on .dot { background: var(--warning); }
 .shot-flag.flag-video.on .dot { background: var(--info); }
-.shot-dialogue {
-  font-size: 10px; color: var(--text-3); margin-top: 2px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  padding-left: 2px; border-left: 2px solid var(--border);
-  padding-left: 6px;
-}
 
 .detail-panel { flex: 1; display: flex; flex-direction: column; overflow-y: auto; min-width: 0; }
 .detail-head { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
@@ -6082,10 +6130,16 @@ onMounted(async () => { await refresh(); loadConfigs(); syncExtractStatus() })
   }
 
   .video-task-side .video-task-inspector {
+    flex: none; /* 窄屏下由外层 workbench 整体滚动，检查器按内容撑开，不参与 flex 收缩 */
     border-top: 0;
   }
 
+  .video-task-player {
+    flex: none; /* 禁止收缩：否则 stage 的 min-height 会使其溢出播放器并遮挡下方检查器 */
+  }
+
   .video-player-stage {
+    flex: none;
     min-height: 240px;
   }
 

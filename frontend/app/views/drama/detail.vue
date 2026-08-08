@@ -134,8 +134,8 @@
         </div>
       </div>
 
-      <!-- Empty episode state -->
-      <div v-if="!drama.episodes?.length" class="card ep-empty">
+      <!-- Empty episode state（点击也可直接添加第一集） -->
+      <div v-if="!drama.episodes?.length" class="card ep-empty" role="button" tabindex="0" title="点击创建第一集" @click="openAddEpisode" @keydown.enter="openAddEpisode">
         <div class="ep-empty-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
             <circle cx="12" cy="12" r="10"/>
@@ -143,7 +143,19 @@
             <line x1="8" y1="12" x2="16" y2="12"/>
           </svg>
         </div>
-        <p>点击上方「添加集」创建第一集</p>
+        <p>点击创建第一集</p>
+      </div>
+
+      <!-- 已有剧集时，列表末尾常驻「添加下一集」卡片 -->
+      <div v-else class="card ep-empty ep-add" role="button" tabindex="0" :title="`添加第 ${(drama.episodes?.length || 0) + 1} 集`" @click="openAddEpisode" @keydown.enter="openAddEpisode">
+        <div class="ep-empty-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="16"/>
+            <line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+        </div>
+        <p>添加第 {{ (drama.episodes?.length || 0) + 1 }} 集</p>
       </div>
     </div>
 
@@ -199,7 +211,7 @@
                 <div class="character-asset-main">
                   <div class="character-asset-overview">
                     <div class="character-portrait">
-                      <img v-if="matHasImage(m)" :src="assetSrc(m)" class="previewable-image" @click.stop="openAssetViewer(m)" />
+                      <img v-if="matHasImage(m)" :src="thumbOf(assetSrc(m))" class="previewable-image" loading="lazy" @error="thumbFallback($event, assetSrc(m))" @click.stop="openAssetViewer(m)" />
                       <div v-else class="character-portrait-empty">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       </div>
@@ -221,6 +233,11 @@
                       <button class="btn btn-sm character-gen-btn" type="button" :disabled="isPending(m)" @click.stop="generateMaterial(m)">
                         <span v-if="isPending(m)" class="ring-spinner sm"></span>
                         {{ matHasImage(m) ? '重绘' : (isPending(m) ? '生成中' : '生成') }}
+                      </button>
+                      <button class="btn btn-sm" type="button" title="上传角色形象图" :disabled="isUploading(m)" @click.stop="uploadMaterial(m)">
+                        <span v-if="isUploading(m)" class="ring-spinner sm"></span>
+                        <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        上传
                       </button>
                     </div>
                   </div>
@@ -245,7 +262,7 @@
                 @keydown.space.prevent="openEdit(m)"
               >
                 <div class="asset-cover wide">
-                  <img v-if="matHasImage(m)" :src="assetSrc(m)" class="previewable-image" @click.stop="openAssetViewer(m)" />
+                  <img v-if="matHasImage(m)" :src="thumbOf(assetSrc(m))" class="previewable-image" loading="lazy" @error="thumbFallback($event, assetSrc(m))" @click.stop="openAssetViewer(m)" />
                   <div v-else class="asset-cover-empty">
                     <svg v-if="g.kindKey === 'scene'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                     <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -274,7 +291,12 @@
                 </div>
                 <div class="asset-foot">
                   <span :class="['dot', matHasImage(m) && 'ok', isPending(m) && 'pending']" />
-                  <button class="btn btn-sm ml-auto" type="button" :disabled="isPending(m)" @click.stop="generateMaterial(m)">
+                  <button class="btn btn-sm ml-auto" type="button" title="上传图片" :disabled="isUploading(m)" @click.stop="uploadMaterial(m)">
+                    <span v-if="isUploading(m)" class="ring-spinner sm"></span>
+                    <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    上传
+                  </button>
+                  <button class="btn btn-sm" type="button" :disabled="isPending(m)" @click.stop="generateMaterial(m)">
                     <span v-if="isPending(m)" class="ring-spinner sm"></span>
                     {{ matHasImage(m) ? '重绘' : (isPending(m) ? '生成中' : '生成') }}
                   </button>
@@ -331,7 +353,7 @@
                   :disabled="!matHasImage(editTarget)"
                   @click.stop="openAssetViewer(editTarget)"
                 >
-                  <img v-if="matHasImage(editTarget)" :src="assetSrc(editTarget)" />
+                  <img v-if="matHasImage(editTarget)" :src="thumbOf(assetSrc(editTarget))" @error="thumbFallback($event, assetSrc(editTarget))" />
                   <span v-else class="mat-detail-media-empty">
                     <svg v-if="editTarget.kindKey === 'character'" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     <svg v-else-if="editTarget.kindKey === 'prop'" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -451,6 +473,15 @@
             <div class="mat-detail-primary-actions">
               <button
                 class="btn"
+                :disabled="isUploading(editTarget)"
+                @click="uploadMaterial(editTarget)"
+              >
+                <span v-if="isUploading(editTarget)" class="ring-spinner sm"></span>
+                <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                上传图片
+              </button>
+              <button
+                class="btn"
                 :disabled="isPending(editTarget)"
                 @click="generateMaterial(editTarget)"
               >
@@ -520,7 +551,7 @@
 
 <script setup>
 import { toast } from 'vue-sonner'
-import { dramaAPI, episodeAPI, characterAPI, sceneAPI, propAPI } from '~/composables/useApi'
+import { dramaAPI, episodeAPI, characterAPI, sceneAPI, propAPI, uploadAPI } from '~/composables/useApi'
 import BaseSelect from '~/components/BaseSelect.vue'
 
 const route = useRoute()
@@ -741,6 +772,42 @@ async function pollMaterial(m) {
 
 function switchToAssets() {
   activeTab.value = 'assets'
+}
+
+/* ===== 素材图片手动上传（角色形象 / 场景图 / 道具图） ===== */
+const uploadingMaterials = ref(new Set())
+function isUploading(m) { return uploadingMaterials.value.has(pendingKey(m)) }
+
+function uploadMaterial(m) {
+  const key = pendingKey(m)
+  if (uploadingMaterials.value.has(key)) return
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp'
+  input.onchange = async () => {
+    const file = input.files?.[0]
+    if (!file) return
+    uploadingMaterials.value = new Set(uploadingMaterials.value).add(key)
+    try {
+      const res = await uploadAPI.image(file)
+      // 与生图回写保持一致：存相对路径（static/...），展示时补前导斜杠
+      const payload = { image_url: res.path, local_path: res.path }
+      if (m.kindKey === 'character') await characterAPI.update(m.id, payload)
+      else if (m.kindKey === 'scene') await sceneAPI.update(m.id, payload)
+      else await propAPI.update(m.id, payload)
+      toast.success(`${m.kind}「${m.name}」图片已上传`)
+      await load()
+      // 详情弹窗打开时同步刷新预览
+      if (editTarget.value && editTarget.value.kindKey === m.kindKey && editTarget.value.id === m.id) {
+        editTarget.value = { ...editTarget.value, image_url: res.path, local_path: res.path }
+      }
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      uploadingMaterials.value = new Set([...uploadingMaterials.value].filter(k => k !== key))
+    }
+  }
+  input.click()
 }
 
 function openAssetViewer(m) {
@@ -1081,11 +1148,19 @@ onMounted(load)
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 48px; text-align: center; color: var(--text-3); font-size: 13px;
   border-style: dashed;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
+.ep-empty:hover { border-color: var(--accent-text); color: var(--accent-text); background: var(--accent-bg); }
+.ep-empty:hover .ep-empty-icon { transform: scale(1.06); }
+/* 列表末尾的「添加下一集」卡片：与剧集卡片等高、内容居中 */
+.ep-add { justify-content: center; min-height: 150px; padding: 24px; }
+.ep-add .ep-empty-icon { width: 40px; height: 40px; }
 .ep-empty-icon {
   width: 48px; height: 48px; border-radius: 50%;
   background: var(--accent-bg); color: var(--accent-text);
   display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s;
 }
 
 /* Create Episode Dialog (on top of global .dialog skeleton) */
